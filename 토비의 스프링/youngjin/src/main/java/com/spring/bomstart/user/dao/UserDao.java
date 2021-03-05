@@ -2,23 +2,42 @@ package com.spring.bomstart.user.dao;
 
 import com.spring.bomstart.user.domain.User;
 
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 
 public class UserDao {
-    private static final String DRIVER = "";
-    private static final String URL = "";
-    private static final String USERNAME = "";
-    private static final String PASSWORD = "";
+    private SimpleConnectionMaker simpleConnectionMaker;
 
-    public void add(User user) throws ClassNotFoundException, SQLException{
+    private static final String DRIVER = "com.mysql.cj.jdbc.Driver";
+
+    public UserDao(){
+        simpleConnectionMaker = new SimpleConnectionMaker();
+    }
+
+    public static void main(String[] args) throws SQLException, ClassNotFoundException {
+
+        UserDao dao = new UserDao();
+
+        User user = new User();
+        user.setId("devandy");
+        user.setName("youngjinmo");
+        user.setPassword("1234");
+
+        dao.add(user);
+
+        System.out.println(user.getId()+" 등록 성공");
+
+    }
+
+    public void add(User user) throws ClassNotFoundException, SQLException {
         Class.forName(DRIVER);
-        Connection conn = DriverManager.getConnection(URL, USERNAME, PASSWORD);
-        PreparedStatement ps = conn.prepareStatement(
-          "INSERT INTO USER(id, name, password) VALUES(?,?,?)"
-        );
-        ps.setString(1,user.getId());
-        ps.setString(2,user.getName());
-        ps.setString(3,user.getPassword());
+        Connection conn = simpleConnectionMaker.makeNewConnection();
+        PreparedStatement ps = conn.prepareStatement("INSERT INTO USER(id, name, password) VALUES(?,?,?)");
+        ps.setString(1, user.getId());
+        ps.setString(2, user.getName());
+        ps.setString(3, user.getPassword());
 
         ps.executeUpdate();
 
@@ -28,14 +47,13 @@ public class UserDao {
 
     public User get(String id) throws ClassNotFoundException, SQLException {
         Class.forName(DRIVER);
-        Connection conn = DriverManager.getConnection(URL, USERNAME, PASSWORD);
-        PreparedStatement ps = conn.prepareStatement(
-                "SELECT * FROM USER WHERE id = ?"
-        );
-        ps.setString(1,id);
+        Connection conn = simpleConnectionMaker.makeNewConnection();
+        PreparedStatement ps = conn.prepareStatement("SELECT * FROM USER WHERE ID = ?");
+        ps.setString(1, id);
 
         ResultSet rs = ps.executeQuery();
         rs.next();
+
         User user = new User();
         user.setId(rs.getString("id"));
         user.setName(rs.getString("name"));
@@ -47,4 +65,5 @@ public class UserDao {
 
         return user;
     }
+
 }
