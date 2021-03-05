@@ -16,21 +16,6 @@ public class UserDao {
         connectionMaker = new DConnectionMaker();
     }
 
-    public static void main(String[] args) throws SQLException, ClassNotFoundException {
-
-        UserDao dao = new UserDao();
-
-        User user = new User();
-        user.setId("devandy");
-        user.setName("youngjinmo");
-        user.setPassword("1234");
-
-        dao.add(user);
-
-        System.out.println(user.getId()+" 등록 성공");
-
-    }
-
     public void add(User user) throws ClassNotFoundException, SQLException {
         Class.forName(DRIVER);
         Connection conn = connectionMaker.makeConnection();
