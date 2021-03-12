@@ -1,9 +1,13 @@
-package ch01.springbook.user.domain;
+package springbook.user.domain;
 
 public class User {
     String id;
     String name;
     String password;
+
+    public User(){
+        //자바 빈 규약에서 생성자를 명시적으로 추가 했을 경우 디폴트 생성자도 함께 정의
+    }
 
     public String getId() {
         return id;
@@ -26,6 +30,12 @@ public class User {
     }
 
     public void setPassword(String password) {
+        this.password = password;
+    }
+
+    public User(String id, String name, String password) {
+        this.id = id;
+        this.name = name;
         this.password = password;
     }
 }

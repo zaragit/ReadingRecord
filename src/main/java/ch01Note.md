@@ -12,7 +12,7 @@
 ## 공통 프로그래밍 모델 - IOC/DI, 서비스 추상화, AOP
 스프링 프레임워크는 3가지 프로그래밍 모델( 어플리케이션 코드가 어떻게 작성되어야하는지 가이드)을 제공  
 
-## 1. 오브젝트와 의존관계
+# 1. 오브젝트와 의존관계
 - 분리와 확장  
 소스코드 변경 가능성에 대해 작업을 최소화 하고 변경된 부분이 다른 곳에 문제를 일으키지 않을 수 있도록 하는  
 - 관심사의 분리 (프로그래밍 기초 개념 중  하나로 Separation of Concerns)  
@@ -34,9 +34,9 @@
 1. 메소드 추출  
 독립된 메소드로 분리  
 ```java
- package ch01.springbook.user.dao;
+ package springbook.user.dao;
 
-import ch01.springbook.user.domain.User;
+import springbook.user.domain.User;
 
 import java.sql.*;
 
@@ -98,9 +98,9 @@ public class UserDao {
 2. 상속을 통한 확장  
 상하위 클래스로 분리
 ```java
-package ch01.springbook.user.dao;
+package springbook.user.dao;
 
-import ch01.springbook.user.domain.User;
+import springbook.user.domain.User;
 
 import java.sql.*;
 
@@ -165,7 +165,7 @@ public abstract class UserDao {
 db 커넥션 클래스가 연결할 디비 정보를 알고있어야하며 UserDao가 디비연결 클래스에 종속적이므로 db 커넥션을 가져오는 방법에대해 확장이 힘들어졌다.
 
 ```java
-package ch01.springbook.user.dao;
+package springbook.user.dao;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -181,9 +181,9 @@ public class SimpleConnectionMaker {
 }
 ```  
 ```java
-package ch01.springbook.user.dao;
+package springbook.user.dao;
 
-import ch01.springbook.user.domain.User;
+import springbook.user.domain.User;
 import java.sql.*;
 
 public abstract class UserDao {
