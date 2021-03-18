@@ -23,5 +23,26 @@
 6. 나머지 테스트 메소드에 대해 2~5번 반복한다.
 7. 모든 테스트의 결과를 종합하여 돌려준다.
 
+## 테스트를 위한 applicationContext 관
+테스트는 가능한 독립적으로 새로운 오브젝트를 만들어 사용해야한다. (JUnit이 매번 테스트 클래스의 오브젝트롤 새로 만든다.)
+
+## 스프링 테스트 컨텍스트 프레임워크 이용
+애노테이션 설정으로 테스트에 필요한 applicationContext를 만들어 모든 테스트에서 공유하여 사용 가능
+```text
+@RunWith(SpringJUnit4ClassRunner.class)
+```
+- JUnit프레임워크의 테스트 실행방법을 확장 시 사용하는 애노테이션
+- SpringJUnit4ClassRunner.class Junit 확장 클래스를 지정 시, 테스트가 사용할 어플리케이션 컨텍스트를 만들고 관리.
+
+```text
+@ContextConfiguration(locations = "../applicationContext.xml")
+```
+- 테스트 시 사용할 어플리케이션 컨텍스트 위치 지정 
+- 스프링은 설정파일 종류만큼 applicationContext를 만들어 같은 설정파일을 지정한 테스트에서 이를 공유한다.
+
+@Autowired
+DI 애노테이션, 애노테이션이 붙은 인스턴스 변수와 같은 컨텍스트 내의 빈을 찾아 인스턴스 변수에 주입시킨다.
+테스트에서도 꼭 필요하지 않다면 인터페이스 타입으로 선언하여 느슨한 결합을 유지한다.
+
  
  
