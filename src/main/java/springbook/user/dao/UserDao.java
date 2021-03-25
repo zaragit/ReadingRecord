@@ -2,18 +2,23 @@ package springbook.user.dao;
 
 import org.springframework.dao.EmptyResultDataAccessException;
 import springbook.user.domain.User;
-import java.sql.*;
+
+import javax.sql.DataSource;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 
 public class UserDao {
 
-    private ConnectionMaker connectionMaker;
+    private DataSource dataSource;
 
-    public UserDao(ConnectionMaker simpleConnectionMaker){
-        this.connectionMaker =  simpleConnectionMaker;
+    public void setDataSource(DataSource dataSource) {
+        this.dataSource = dataSource;
     }
 
     public void create() throws SQLException, ClassNotFoundException {
-        Connection c = this.connectionMaker.makeConnection();
+        Connection c = this.dataSource.getConnection();
         PreparedStatement ps = c.prepareStatement("CREATE TABLE USERS (ID VARCHAR(10) PRIMARY KEY, NAME VARCHAR (20) NOT NULL, PASSWORD VARCHAR(10) NOT NULL)");
 
         ps.executeUpdate();
@@ -25,7 +30,7 @@ public class UserDao {
 
 
     public void add(User user) throws SQLException, ClassNotFoundException {
-        Connection c = this.connectionMaker.makeConnection();
+        Connection c = this.dataSource.getConnection();
         PreparedStatement ps = c.prepareStatement("insert into users(id, name, password) values (?,?,?)");
         ps.setString(1,user.getId());
         ps.setString(2,user.getName());
@@ -39,7 +44,7 @@ public class UserDao {
     }
 
     public User get(String id) throws ClassNotFoundException, SQLException {
-        Connection c = this.connectionMaker.makeConnection();
+        Connection c = this.dataSource.getConnection();
         PreparedStatement ps = c.prepareStatement("select * from users where id = ?");
         ps.setString(1,id);
 
@@ -61,7 +66,7 @@ public class UserDao {
     }
 
     public void deleteAll() throws SQLException, ClassNotFoundException {
-        Connection c = this.connectionMaker.makeConnection();
+        Connection c = this.dataSource.getConnection();
         PreparedStatement ps = c.prepareStatement("delete from users");
         ps.executeUpdate();
         ps.close();
@@ -69,7 +74,7 @@ public class UserDao {
     }
 
     public int getCount() throws SQLException, ClassNotFoundException {
-        Connection c = this.connectionMaker.makeConnection();
+        Connection c = this.dataSource.getConnection();
         PreparedStatement ps = c.prepareStatement("select count(*) from users");
 
         ResultSet rs = ps.executeQuery();
@@ -82,5 +87,6 @@ public class UserDao {
 
         return count;
     }
+
 
 }
