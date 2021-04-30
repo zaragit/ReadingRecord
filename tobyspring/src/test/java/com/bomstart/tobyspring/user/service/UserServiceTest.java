@@ -6,11 +6,17 @@ import com.bomstart.tobyspring.user.domain.User;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentMatchers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.ApplicationContext;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.transaction.PlatformTransactionManager;
 
 import javax.sql.DataSource;
+import java.lang.reflect.Proxy;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -20,11 +26,19 @@ import static org.hamcrest.Matchers.*;
 import static com.bomstart.tobyspring.user.service.UserLevelUpgradePolicy.MIN_RECOOMEND_FOR_GOLD;
 import static com.bomstart.tobyspring.user.service.UserLevelUpgradePolicy.MIN_LOGCOUNT_FOR_SILVER;
 
+import static org.mockito.Mockito.*;
+
 @SpringBootTest
 @ContextConfiguration(locations = "/applicationContext.xml")
 public class UserServiceTest {
     @Autowired
-    UserService userService;
+    UserServiceImpl userServiceImpl;
+
+    @Autowired
+    PlatformTransactionManager platformTransactionManager;
+
+    @Autowired
+    ApplicationContext context;
 
     @Autowired
     UserDao userDao;
@@ -47,21 +61,25 @@ public class UserServiceTest {
 
     @Test
     public void bean() {
-        assertThat(this.userService, is(notNullValue()));
+        assertThat(this.userServiceImpl, is(notNullValue()));
     }
 
     @Test
     public void upgradeLevels() {
-        userDao.deleteAll();
-        for (User user : users) userDao.add(user);
+        UserServiceImpl userServiceImpl = new UserServiceImpl();
+        userServiceImpl.setUserLevelUpgradePolicy(new NormalUserLevelUpgradePolicy());
 
-        userService.upgradeLevels();
+        UserDao mockUserDao = mock(UserDao.class);
+        when(mockUserDao.getAll()).thenReturn(this.users);
+        userServiceImpl.setUserDao(mockUserDao);
 
-        checkLevelUpgraded(users.get(0), false);
-        checkLevelUpgraded(users.get(1), true);
-        checkLevelUpgraded(users.get(2), false);
-        checkLevelUpgraded(users.get(3), true);
-        checkLevelUpgraded(users.get(4), false);
+        userServiceImpl.upgradeLevels();
+
+        verify(mockUserDao, times(2)).update(ArgumentMatchers.any(User.class));
+        verify(mockUserDao).update(users.get(1));
+        assertThat(users.get(1).getLevel(), is(Level.SILVER));
+        verify(mockUserDao).update(users.get(3));
+        assertThat(users.get(3).getLevel(), is(Level.GOLD));
     }
 
     @Test
@@ -72,8 +90,8 @@ public class UserServiceTest {
         User userWithoutLevel = users.get(0);
         userWithoutLevel.setLevel(null);
 
-        userService.add(userWithLevel);
-        userService.add(userWithoutLevel);
+        userServiceImpl.add(userWithLevel);
+        userServiceImpl.add(userWithoutLevel);
 
         User userWithLevelRead = userDao.get(userWithLevel.getId());
         User userWithoutLevelRead = userDao.get(userWithoutLevel.getId());
@@ -83,21 +101,28 @@ public class UserServiceTest {
     }
 
     @Test
-    public void upgradeAllOrNothing() {
-        userService.setUserLevelUpgradePolicy(new TestUserLevelUpgradePolicy(userDao, users.get(3).getId()));
+    @DirtiesContext
+    public void upgradeAllOrNothing() throws Exception {
+        UserServiceImpl userService = new UserServiceImpl();
+        userService.setUserDao(this.userDao);
+        userService.setUserLevelUpgradePolicy(new TestUserLevelUpgradePolicy(users.get(3).getId()));
+
+        TxProxyFactoryBean txProxyFactoryBean = context.getBean("&userService", TxProxyFactoryBean.class);
+        txProxyFactoryBean.setTarget(userService);
+        UserService txUserService = (UserService)txProxyFactoryBean.getObject();
 
         userDao.deleteAll();
         for (User user : users) userDao.add(user);
 
         try {
-            userService.upgradeLevels();
+            txUserService.upgradeLevels();
             Assertions.fail("TestUserServiceException expected");
         } catch (TestUserServiceException e) {
         }
 
-        checkLevelUpgraded(users.get(1), false);
+        checkLevelUpgraded(users.get(3), false);
     }
-    
+
     private void checkLevelUpgraded(User user, boolean upgraded) {
         User userUpdate = userDao.get(user.getId());
 
@@ -108,13 +133,17 @@ public class UserServiceTest {
         }
     }
 
+    private void checkUserAndLevel(User updated, String expectedId, Level expectedLevel) {
+        assertThat(updated.getId(), is(expectedId));
+        assertThat(updated.getLevel(), is(expectedLevel));
+    }
+
     static class TestUserServiceException extends RuntimeException{}
 
     static class TestUserLevelUpgradePolicy extends NormalUserLevelUpgradePolicy {
         String id;
 
-        TestUserLevelUpgradePolicy(UserDao userDao, String id) {
-            this.userDao = userDao;
+        TestUserLevelUpgradePolicy(String id) {
             this.id = id;
         }
 
@@ -123,6 +152,32 @@ public class UserServiceTest {
             if (user.getId().equals(this.id)) throw new TestUserServiceException();
             super.upgradeLevel(user);
         }
+    }
+
+    static class MockUserDao implements UserDao {
+        private List<User> users;
+        private List<User> updated = new ArrayList<>();
+
+        private MockUserDao(List<User> users) {
+            this.users = users;
+        }
+
+        public List<User> getUpdated() {
+            return this.updated;
+        }
+
+        public List<User> getAll() {
+            return this.users;
+        }
+
+        public void update(User user) {
+            updated.add(user);
+        }
+
+        public void add(User user) { throw new UnsupportedOperationException(); }
+        public void deleteAll() { throw new UnsupportedOperationException(); }
+        public User get(String id) { throw new UnsupportedOperationException(); }
+        public int getCount() { throw new UnsupportedOperationException(); }
     }
 }
 

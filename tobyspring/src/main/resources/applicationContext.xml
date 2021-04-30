@@ -22,14 +22,18 @@
         <property name="dataSource" ref="dataSource"/>
     </bean>
 
-    <bean id="userService" class="com.bomstart.tobyspring.user.service.UserService">
+    <bean id="userServiceImpl" class="com.bomstart.tobyspring.user.service.UserServiceImpl">
         <property name="userDao" ref="userDao"/>
         <property name="userLevelUpgradePolicy" ref="userLevelUpgradePolicy"/>
-        <property name="dataSource" ref="dataSource"/>
-        <property name="transactionManager" ref="transactionManager" />
+    </bean>
+
+    <bean id="userService" class="com.bomstart.tobyspring.user.service.TxProxyFactoryBean">
+        <property name="transactionManager" ref="transactionManager"/>
+        <property name="target" ref="userServiceImpl"/>
+        <property name="pattern" value="upgradeLevels"/>
+        <property name="serviceInterface" value="com.bomstart.tobyspring.user.service.UserService"/>
     </bean>
 
     <bean id="userLevelUpgradePolicy" class="com.bomstart.tobyspring.user.service.NormalUserLevelUpgradePolicy">
-        <property name="userDao" ref="userDao" />
     </bean>
 </beans>

@@ -5,12 +5,6 @@ import com.bomstart.tobyspring.user.domain.Level;
 import com.bomstart.tobyspring.user.domain.User;
 
 public class NormalUserLevelUpgradePolicy implements UserLevelUpgradePolicy{
-    UserDao userDao;
-
-    public void setUserDao(UserDao userDao) {
-        this.userDao = userDao;
-    }
-
     @Override
     public boolean canUpgradeLevel(User user) {
         Level currentLevel = user.getLevel();
@@ -26,6 +20,5 @@ public class NormalUserLevelUpgradePolicy implements UserLevelUpgradePolicy{
     @Override
     public void upgradeLevel(User user) {
         user.upgradeLevel();
-        userDao.update(user);
     }
 }
