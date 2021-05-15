@@ -15,7 +15,6 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.transaction.PlatformTransactionManager;
 
 import javax.sql.DataSource;
-import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -32,7 +31,10 @@ import static org.mockito.Mockito.*;
 @ContextConfiguration(locations = "/applicationContext.xml")
 public class UserServiceTest {
     @Autowired
-    UserServiceImpl userServiceImpl;
+    UserService userService;
+
+    @Autowired
+    UserLevelUpgradePolicy testUserLevelUpgradePolicy;
 
     @Autowired
     PlatformTransactionManager platformTransactionManager;
@@ -61,7 +63,7 @@ public class UserServiceTest {
 
     @Test
     public void bean() {
-        assertThat(this.userServiceImpl, is(notNullValue()));
+        assertThat(this.userService, is(notNullValue()));
     }
 
     @Test
@@ -90,8 +92,8 @@ public class UserServiceTest {
         User userWithoutLevel = users.get(0);
         userWithoutLevel.setLevel(null);
 
-        userServiceImpl.add(userWithLevel);
-        userServiceImpl.add(userWithoutLevel);
+        userService.add(userWithLevel);
+        userService.add(userWithoutLevel);
 
         User userWithLevelRead = userDao.get(userWithLevel.getId());
         User userWithoutLevelRead = userDao.get(userWithoutLevel.getId());
@@ -102,20 +104,16 @@ public class UserServiceTest {
 
     @Test
     @DirtiesContext
-    public void upgradeAllOrNothing() throws Exception {
+    public void upgradeAllOrNothing() {
         UserServiceImpl userService = new UserServiceImpl();
         userService.setUserDao(this.userDao);
-        userService.setUserLevelUpgradePolicy(new TestUserLevelUpgradePolicy(users.get(3).getId()));
-
-        TxProxyFactoryBean txProxyFactoryBean = context.getBean("&userService", TxProxyFactoryBean.class);
-        txProxyFactoryBean.setTarget(userService);
-        UserService txUserService = (UserService)txProxyFactoryBean.getObject();
+        userService.setUserLevelUpgradePolicy(this.testUserLevelUpgradePolicy);
 
         userDao.deleteAll();
         for (User user : users) userDao.add(user);
 
         try {
-            txUserService.upgradeLevels();
+            userService.upgradeLevels();
             Assertions.fail("TestUserServiceException expected");
         } catch (TestUserServiceException e) {
         }
@@ -133,24 +131,15 @@ public class UserServiceTest {
         }
     }
 
-    private void checkUserAndLevel(User updated, String expectedId, Level expectedLevel) {
-        assertThat(updated.getId(), is(expectedId));
-        assertThat(updated.getLevel(), is(expectedLevel));
-    }
-
     static class TestUserServiceException extends RuntimeException{}
 
     static class TestUserLevelUpgradePolicy extends NormalUserLevelUpgradePolicy {
-        String id;
-
-        TestUserLevelUpgradePolicy(String id) {
-            this.id = id;
-        }
+        private String id = "test4";
 
         @Override
         public void upgradeLevel(User user) {
-            if (user.getId().equals(this.id)) throw new TestUserServiceException();
             super.upgradeLevel(user);
+            if (user.getId().equals(this.id)) throw new TestUserServiceException();
         }
     }
 

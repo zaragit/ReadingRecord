@@ -28,7 +28,7 @@ public class TxProxyFactoryBean implements FactoryBean<Object> {
     }
 
     @Override
-    public Object getObject() throws Exception {
+    public Object getObject() {
         TransactionHandler txHandler = new TransactionHandler();
         txHandler.setTarget(target);
         txHandler.setTransactionManager(transactionManager);
