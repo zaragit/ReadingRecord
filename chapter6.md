@@ -96,3 +96,72 @@ public interface FactoryBean<T> {
 
 1. 여러 개의 메소드에 대한 부가기능은 처리가 가능하지만 여러 클래스에 대한 처리는 불가능하다.
 2. 부가기능의 개수만큼 빈 설정을 작성해야 한다는 번거로움이 있다.
+
+### 스프링의 ProxyFactoryBean
+
+스프링은 ProxyFactoryBean을 통해서 일관된 방법으로 프록시를 만들 수 있게 도와준다.  
+ProxyFactoryBean은 이름에서 알 수 있듯이 Proxy를 만들어서 빈으로 등록해 주는 팩토리빈이다.
+
+순전히 Proxy를 생성해서 빈으로 등록하는 작업만 담당하고, 실제 프록시에서 제공할 부가기능은 MethodInterceptor 인터페이스를 구현해서 제공받는다.  
+(서비스 추상화 계층을 통해서 부가기능이란 관심사를 Proxy 생성 로직에서 분리)
+
+#### MethodInterceptor
+
+```Java
+public Object invoke(MethodInvocation invocation) throws Throwable {
+  String ret = (String)invocation.proceed();
+  return ret.toUpperCase(); // 문자를 대문자로 변환해서 반환하는 부가기능
+}
+```
+
+MethodInterceptor는 부가기능을 처리하는 인터페이스이다. invoke 메소드의 파라미터로 전달되는 MethodInvocation은 일종의 콜백 오브젝트이다.  
+타겟 객체에 메소드를 실행 시키는 콜백을 proceed() 메소드로 구현해서 전달 받기 때문에 invoke메소드에서는 부가기능에만 집중 할 수 있다.
+
+---
+
+## AOP 용어 정리
+
+#### 어드바이스(Advice)
+
+AOP에서 프록시에서 제공할 부가기능을 어드바이스라고 한다.
+
+#### 포인트 컷(Pointcut)
+
+타겟 객체에서 어드바이스가 실행되어야 할 메소드나 클래슬르 지정하는 것을 포인트 컷이라고 한다.
+
+#### 어드바이저(Advisor)
+
+포인트 컷을 등록할 때 어느 어드바이스에 대해서 적용할 포인트 컷인지를 알 수 있도록 묶어서 등록을 하는데 이것을 어드바이저라고 한다.  
+어드바이저 = 포인트 컷 + 어드바이스
+
+---
+
+## 자동 프록시
+
+ProxyFactoryBean을 사용함으로서 새로운 부가기능을 추가하거나 타켓 객체가 변경되어도 코드를 수정해야할 일은 없게 되었지만 아직 새로운 타겟마다 설정값을 추가해야한다는 불편함이 있다.
+
+```xml
+<!-- 타겟 마다 작성되어야 하는 설정 -->
+<bean id="userService" class="org.springframework.aop.framework.ProxyFactoryBean">
+  <property name="target" ref="userServiceImpl">
+  <property name="interceptorNames">
+    <list>
+      <value>transactionAdvisor</value>
+    </list>
+  </property>
+</bean>
+```
+
+### 빈 후처리기
+
+빈 후처리기는 빈이 생성되고 난 뒤 후처리를 해주는 오브젝트로 빈의 내용을 변경하거나 빈 자체를 교체하는 등의 작업을 할 때 사용한다.  
+스프링에서는 DefaultAdvisorAutoProxyCreator라는 빈 후처리기를 제공해서 별다른 설정을 작성하지 않아도 자동으로 프록시를 생성해 준다.
+
+#### DefaultAdvisorAutoProxyCreator의 동작
+
+1. 스프링에 의해 빈 설정파일에 작성된 빈 오브젝트가 생성된다.
+2. 생성 된 빈들은 빈 후처리기로 보내진다.
+3. 빈 후처리기는 Advisor 인터페이스를 구현한 빈을 스캔한다.
+4. 등록 된 빈중에서 Advisor에 해당하는 타겟들을 찾는다.
+5. 해당되는 타겟 빈들에 대한 프록시 객체를 만들고 타겟 빈을 프록시 객체로 변경한다.
+6. 타켓 객체에 의존하는 경우 변경된 프록시 객체를 사용하게 된다.
