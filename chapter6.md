@@ -165,3 +165,102 @@ ProxyFactoryBean을 사용함으로서 새로운 부가기능을 추가하거나
 4. 등록 된 빈중에서 Advisor에 해당하는 타겟들을 찾는다.
 5. 해당되는 타겟 빈들에 대한 프록시 객체를 만들고 타겟 빈을 프록시 객체로 변경한다.
 6. 타켓 객체에 의존하는 경우 변경된 프록시 객체를 사용하게 된다.
+
+---
+
+## 트랜잭션 속성
+
+트랜잭션 속성을 통해서 트랜잭션마다 다르게 동작하도록 할 수 있다.
+
+### 트랜잭션의 네가지 속성
+
+#### 1. 트랜잭션 전파
+
+- **PROPAGATION_REQUIRED**
+  가장 자주 사용되는 트랜잭션 전파 속성이다.  
+   진행 중인 트랜잭션이 없으면 새로 시작하고, 있다면 해당 트랜잭션에 참여한다.
+  <br>
+- **PROPAGATION_REQUIRES_NEW**
+  항상 새로운 트랜잭션을 실행하는 속성이다.
+  <br>
+- **PROPAGATION_NOT_SUPPORTED**
+  트랜잭션이 없이 동작하도록 하는 속성이다.  
+  특정 메소드에 경우만 트랜잭션 처리를 제외하려고 할 때 유용하게 사용된다.
+
+#### 2. 격리수준
+
+여러 트랜잭션이 동시에 실행되면서 문제가 발행하지 않도록 제어하기 위한 속성.  
+기본적으로 DB에 설정되어 있지만 JDBC 드라이버나 DataSource 등에서 재설정 할 수 있고, 필요에 따라서 트랜잭션 단위로 격리수준을 조정할 수 있다.
+
+#### 3. 제한시간
+
+트랜잭션이 수행하는 제한시간을 설정하는 속성.
+
+#### 4. 읽기전용
+
+데이터를 조회(SELECT)만 하는경우 읽기전용(read only) 설정을 통해서 데이터 조작이 불가능 하도록 할 수 있다.  
+단순히 조회만 수행하도록 하기 때문에 성능상 이점이 있다.
+
+<br>
+
+### 트랜잭션 속성 지정 방법
+
+#### 1. Bean을 통한 설정
+
+직접 transactionAttributes 프로퍼티의 값을 지정한다.  
+트랜잭션 속성은 ,로 구분한 문자열로 정의할 수 있다.
+
+```xml
+<bean id="transactionAdvice" class="org.springframework.transaction.interceptor.TransactionInterceptor">
+  <property name="transactionManager" ref="transactionManager"/>
+  <property name="transactionAttributes">
+    <props>
+      <prop key="get*">PROPAGATION_REQUIRED,readOnly,timeout_30</prop>
+      <prop key="upgrade*">PROPAGATION_REQUIRES_NEW,ISOLATION_SERIALIZABLE</prop>
+      <prop key="*">PROPAGATION_REQUIRED</prop>
+    </props>
+  </property>
+</bean>
+```
+
+#### 2. tx 네임스페이스 사용
+
+tx 스키마의 태그를 통해서 설정.  
+설정 내용을 읽기가 쉽고, 자동완성 등을 통해서 오타 문제도 해결 할 수 있는 장점이 있다.
+
+```xml
+<tx:advice id="transactionAdvice" transaction-manager="transactionManager">
+  <tx:attributes>
+    <tx:method name="get*" propagation="REQUIRED" read-only="true" timeout="30"/>
+    <tx:method name="upgrade*" propagation="REQUIRES_NEW" isolation="SERIALIZABLE" />
+    <tx:method name="*" propagation="REQUIRED" />
+  </tx:attributes>
+</tx:advice>
+```
+
+#### 3. 어노테이션을 사용
+
+간혹 클래스나 메소드에 따라서 제각각 속성이 다르게 세밀한 설정이 필요한 경우가 있는데 이런 경우 설정값이 지저분 해질 수 있다.  
+이런 경우 @Transactional 어노테이션을 사용하는편이 좋다.
+
+@Transactional는 메소드, 클래스, 인터페이스에 모두 사용할 수 있다.
+
+##### 대체 정책
+
+@Transactional를 적용할 때 4단계의 대체 정책을 이용한다.  
+타겟 메소드, 타겟 클래스, 선업 메소드, 선언 타입 순으로 확인하고 먼저 확인되는 트랜잭션을 적용한다.
+설정에 \<td:annotation-driven\>만 작성해주면 되서 설정이 가장 간단하다.
+
+```Java
+// [4] - [3] - [2] - [1] 순으로 확인 후 트랜잭션 적용
+// [1]
+public interface Service {
+  // [2]
+  void method1();
+}
+// [3]
+public class ServiceImpl implements Service {
+  // [4]
+  public void method1() {}
+}
+```
