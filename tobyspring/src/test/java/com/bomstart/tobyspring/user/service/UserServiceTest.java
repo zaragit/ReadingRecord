@@ -10,6 +10,7 @@ import org.mockito.ArgumentMatchers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationContext;
+import org.springframework.dao.TransientDataAccessResourceException;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -32,6 +33,9 @@ import static org.mockito.Mockito.*;
 public class UserServiceTest {
     @Autowired
     UserService userService;
+
+    @Autowired
+    UserService testUserService;
 
     @Autowired
     UserLevelUpgradePolicy testUserLevelUpgradePolicy;
@@ -121,6 +125,14 @@ public class UserServiceTest {
         checkLevelUpgraded(users.get(3), false);
     }
 
+    @Test
+    public void readOnlyTransactionAttribute() {
+        Assertions.assertThrows(TransientDataAccessResourceException.class, () -> {
+            testUserService.getAll();
+        });
+    }
+
+
     private void checkLevelUpgraded(User user, boolean upgraded) {
         User userUpdate = userDao.get(user.getId());
 
@@ -167,6 +179,17 @@ public class UserServiceTest {
         public void deleteAll() { throw new UnsupportedOperationException(); }
         public User get(String id) { throw new UnsupportedOperationException(); }
         public int getCount() { throw new UnsupportedOperationException(); }
+    }
+
+    static class TestUserService extends UserServiceImpl {
+
+        public List<User> getAll() {
+            for(User user : super.getAll()) {
+                super.update(user);
+            }
+
+            return null;
+        }
     }
 }
 

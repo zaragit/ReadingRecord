@@ -23,11 +23,33 @@ public class UserServiceImpl implements UserService{
         this.userLevelUpgradePolicy = userLevelUpgradePolicy;
     }
 
+    @Override
     public void add(User user) {
         if (user.getLevel() == null) user.setLevel(Level.BASIC);
         userDao.add(user);
     }
 
+    @Override
+    public User get(String id) {
+        return userDao.get(id);
+    }
+
+    @Override
+    public List<User> getAll() {
+        return userDao.getAll();
+    }
+
+    @Override
+    public void deleteAll() {
+        userDao.deleteAll();
+    }
+
+    @Override
+    public void update(User user) {
+        userDao.update(user);
+    }
+
+    @Override
     public void upgradeLevels() {
         List<User> users = userDao.getAll();
 

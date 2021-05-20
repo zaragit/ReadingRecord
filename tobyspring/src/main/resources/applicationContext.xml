@@ -1,7 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <beans xmlns="http://www.springframework.org/schema/beans"
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+       xmlns:aop="http://www.springframework.org/schema/aop"
+       xmlns:tx="http://www.springframework.org/schema/tx"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+                        http://www.springframework.org/schema/beans/spring-beans.xsd
+                        http://www.springframework.org/schema/aop
+                        http://www.springframework.org/schema/aop/spring-aop-3.0.xsd
+                        http://www.springframework.org/schema/tx
+                        http://www.springframework.org/schema/tx/spring-tx-2.5.xsd">
 
     <bean id="dataSource" class="org.springframework.jdbc.datasource.SimpleDriverDataSource">
         <property name="driverClass" value="com.mysql.jdbc.Driver"/>
@@ -27,22 +34,20 @@
         <property name="userLevelUpgradePolicy" ref="userLevelUpgradePolicy" />
     </bean>
 
+    <bean id="testUserService" class="com.bomstart.tobyspring.user.service.UserServiceTest$TestUserService" parent="userService"/>
+
     <bean id="userLevelUpgradePolicy" class="com.bomstart.tobyspring.user.service.NormalUserLevelUpgradePolicy"></bean>
 
-    <bean id="transactionAdvice" class="com.bomstart.tobyspring.user.service.TransactionAdvice">
-        <property name="transactionManager" ref="transactionManager"/>
-    </bean>
+    <tx:advice id="transactionAdvice">
+        <tx:attributes>
+            <tx:method name="get*" read-only="true" timeout="30"/>
+            <tx:method name="*" />
+        </tx:attributes>
+    </tx:advice>
 
-    <bean id="transactionAdvisor" class="org.springframework.aop.support.DefaultPointcutAdvisor">
-        <property name="advice" ref="transactionAdvice" />
-        <property name="pointcut" ref="transactionPointcut" />
-    </bean>
-
-    <bean id="transactionPointcut" class="org.springframework.aop.aspectj.AspectJExpressionPointcut">
-        <property name="expression" value="execution(* *..*UpgradePolicy.upgrade*(..))"/>
-    </bean>
-
-    <bean class="org.springframework.aop.framework.autoproxy.DefaultAdvisorAutoProxyCreator"></bean>
+    <aop:config>
+        <aop:advisor advice-ref="transactionAdvice" pointcut="bean(*Service)"/>
+    </aop:config>
 
     <bean id="testUserLevelUpgradePolicy" class="com.bomstart.tobyspring.user.service.UserServiceTest$TestUserLevelUpgradePolicy" parent="userLevelUpgradePolicy"></bean>
 
